@@ -239,6 +239,11 @@ GreedyOutput ROCmDevice::sampleGreedy(const GreedyParams& params) {
         return GreedyOutput{};
     }
 
+        hipEvent_t start, stop;
+        hipEventCreate(&start);
+        hipEventCreate(&stop);
+        hipEventRecord(start);
+
     // 4. run sampling
     // 4.1 run top_k
     invokeSetupTopKRuntimeArgs(batch_size,
@@ -335,6 +340,13 @@ GreedyOutput ROCmDevice::sampleGreedy(const GreedyParams& params) {
     auto output_tokens = transpose({*transposed_tokens});
     copy({params.token_ids, *output_tokens});
     check_cuda_error();
+        hipEventRecord(stop);
+        hipEventSynchronize(stop);
+        float milliseconds = 0;
+        hipEventElapsedTime(&milliseconds, start, stop);
+        std::cout << "XBJ: took " << milliseconds << " ms" << std::endl;
+        hipEventDestroy(start);
+        hipEventDestroy(stop);
     return GreedyOutput{};
 }
 
